@@ -365,6 +365,12 @@ function renderHeroHealth(){
     floor.closePath();
     floor.fill();
     floor.restore();
+    if (hero.messageTimer > 0) {
+        floor.font = "20px Arial";
+        floor.fillStyle = "red";
+        floor.fillText(hero.damageMessage, hero.x - 50, hero.y - 40);
+        hero.messageTimer--; // Diminue le timer à chaque frame
+    }
 }
 
 function renderHeroBelt(){ //inventer
@@ -683,24 +689,28 @@ function Mob(x,y,name){ // defini le monstre
     this.use = function(mob){
         if(mob.doAttack) mob.doAttack(this);
     };
-    this.damage=function(damage, damageSource){
-        var health=this.health - damage * 1000/(1000-this.resistance);
-        if(health<=0){
-            this.health=0;
-            remove(monsters,this);
-            if(this.death) deathmobs.push(new DeathMob(this));
-            // Vérifie si c'est le héros qui a tué le monstre
-        if (this.attacked === hero) {
-            hero.onKill();
-        }
-        // Vérifie si le héros est bien la source des dégâts
-        if (damageSource instanceof HeroBarbarian) {
-            damageSource.onKill(); // Appelle la fonction qui gère le compteur de kills
+    this.damage = function(damage, damageSource) {
+    var health = this.health - damage * 1000 / (1000 - this.resistance);
+
+    if (health <= 0) {
+        this.health = 0;
+
+        // Empêche le double kill
+        if (!this.killed) {
+            this.killed = true;
+
+            remove(monsters, this);
+            if (this.death) deathmobs.push(new DeathMob(this));
+
+            // Vérifie si le héros est bien la source des dégâts
+            if (damageSource instanceof HeroBarbarian) {
+                damageSource.onKill(); // Appelle la fonction qui gère le compteur de kills
+            }
         }
     } else {
         this.health = health;
     }
-    }
+};
 }
 
 function AgressiveMob(x,y,name){
@@ -749,6 +759,7 @@ function HeroBarbarian(x,y){
     this.criticalDamage = 0.4;
     this.currentDamage = 120;
     this.monstersKilled = 0; //compteur de monstre tues
+
     this.addToBelt=function(potion){
         for(var i=0;i<this.belt.size;i++){
             if(typeof this.belt.items[i] == "undefined"){
@@ -766,17 +777,32 @@ function HeroBarbarian(x,y){
         }
     };
 
+
      // Méthode appelée quand un monstre est tué
      this.onKill = function () {
         this.monstersKilled++;
         console.log("Monstres tués : " + this.monstersKilled);
         this.upgradeWeapon();
+        this.damageMessage = "Your damage has doubled! Unleash your power!"; // Message à afficher
+        this.messageTimer = 100;   // Durée d'affichage du message
+
+
+        this.onKill = function () {
+            console.log("this dans onKill:", this); // <- debug
+            this.monstersKilled++;
+            console.log("Monstres tués : " + this.monstersKilled);
+            this.updateKillCounterUI(); // <--- mise à jour de l'affichage
+            this.upgradeWeapon();
+            this.damageMessage = "Your damage has doubled! Unleash your power!";
+            this.messageTimer = 100;
+        };
     };
 
      // Redéfinition de getDamage pour inclure les dégâts boostés
      this.getDamage = function () {
         return this.currentDamage * (Math.random() <= this.criticalDamage ? 4 : 1);
     };
+    
 
     this.criticalDamage=0.4
     this.currentDamage=120;
@@ -790,6 +816,19 @@ this.doAttack = function(mob) {
         this.setState(this.attack);
         this.attacked = mob;
         mob.damage(this.getDamage(), this); // Passe `this` (le héros) comme source des dégâts
+    }
+};
+this.updateKillCounterUI = function () {
+    const el = document.getElementById("monster-kill-counter");
+    if (el) {
+        el.textContent = "Monstres tués : " + this.monstersKilled;
+    }
+};
+
+HeroBarbarian.prototype.updateKillCounterUI = function () {
+    const el = document.getElementById("monster-kill-counter");
+    if (el) {
+        el.textContent = "Monstres tués : " + this.monstersKilled;
     }
 };
 
