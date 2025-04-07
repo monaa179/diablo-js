@@ -790,7 +790,7 @@ function HeroBarbarian(x,y){
         this.onKill = function () {
             console.log("this dans onKill:", this); // <- debug
             this.monstersKilled++;
-            console.log("Monstres tués : " + this.monstersKilled);
+            console.log("Monsters Killed : " + this.monstersKilled);
             this.updateKillCounterUI(); // <--- mise à jour de l'affichage
             this.upgradeWeapon();
             this.damageMessage = "Your damage has doubled! Unleash your power!";
